@@ -6,8 +6,9 @@ services:
     environment:
       PORT: 3000
       DATA_DIR: /app/data
-      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-local-development-secret}
-      # Set to true only when you trust users who can request replays.
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:?Set DASHBOARD_PASSWORD in environment}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRETS: ${RAZORPAY_WEBHOOK_SECRETS:-}
       REPLAY_ALLOW_REMOTE: ${REPLAY_ALLOW_REMOTE:-false}
     volumes:
       - webhook_data:/app/data
