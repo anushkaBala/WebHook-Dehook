@@ -2,20 +2,10 @@
   "name": "webhook-dehook",
   "version": "1.0.0",
   "private": true,
-  "description": "A Razorpay-focused webhook debugger, diagnosis dashboard, and replay tool.",
+  "description": "Razorpay webhook debugger: verifies signatures on raw bodies, flags duplicates and out-of-order events, and replays payloads.",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "test": "node --test"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "better-sqlite3": "^11.8.1",
-    "express": "^4.21.2"
-  },
-  "devDependencies": {
-    "supertest": "^7.1.1"
-  }
+  "scripts": { "start": "node server.js", "test": "node --test" },
+  "engines": { "node": ">=20" },
+  "dependencies": { "better-sqlite3": "^11.8.1", "express": "^4.21.2" },
+  "devDependencies": { "supertest": "^7.1.1" }
 }
