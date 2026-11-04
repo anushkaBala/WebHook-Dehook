@@ -1,31 +1,18 @@
-# WebHook-Dehook
+# Razorpay webhook debugger: verifies signatures on raw bodies, flags duplicates and out-of-order events, and replays payloads.
 
-**Inspect, diagnose, and replay Razorpay webhook deliveries.** WebHook-Dehook verifies signatures against the original request bytes, stores event history, flags duplicate IDs and possible payment-event ordering gaps, and helps troubleshoot merchant integrations.
+Razorpay webhook debugging for merchant integrations: capture deliveries, verify signatures against the original request bytes, inspect duplicates and payment-event ordering, and replay events to a local endpoint.
 
 ![Webhook debugging workflow](docs/images/webhook-debug-flow.svg)
 
-## What it does
+## Features
 
-- Receives Razorpay webhooks at `POST /webhooks/razorpay`.
-- Verifies `X-Razorpay-Signature` with HMAC-SHA256 using the exact raw body, before JSON parsing.
-- Stores payload bytes, request headers, event ID/type, verification result, and receipt time in SQLite.
-- Marks repeated `x-razorpay-event-id` values and provides a best-effort warning when a captured event has no earlier authorization delivery in recorded history.
-- Displays event details and filters by event type, signature result, and duplicate status.
-- Replays the original body and signature to a localhost destination by default.
-- Simulates normal, failed, and delayed local receiver responses.
-
-## Workflow
-
-```mermaid
-flowchart LR
-  R[Razorpay webhook] -->|raw body + signature| V[HMAC-SHA256 verification]
-  V --> D[(SQLite event store)]
-  D --> I[Event inbox and diagnosis]
-  I --> T[Payment event history]
-  I --> P[Replay to local endpoint]
-```
-
-The dashboard is plain HTML, CSS, and JavaScript served by Express; no frontend build step is needed.
+- Raw-body HMAC-SHA256 signature verification before JSON parsing.
+- SQLite event inbox with request headers, event ID/type, verification result, and receipt time.
+- Duplicate event-ID detection and a best-effort warning for captured events with no earlier authorization delivery recorded here.
+- Event filters, redacted event details, and merchant-friendly explanations alongside technical fixes.
+- Dashboard/API password protection using HTTP Basic Auth and `DASHBOARD_PASSWORD`.
+- Localhost-only replay by default, response status/duration, and failure simulator for normal, failed, and delayed responses.
+- Tests for signature validation, tampering, wrong secrets, duplicate IDs, PII masking, dashboard auth, and target safety.
 
 ## Run locally
 
@@ -33,51 +20,38 @@ Requires Node.js 20+ and a native build toolchain for `better-sqlite3`.
 
 ```bash
 npm install
-RAZORPAY_WEBHOOK_SECRET='your-test-webhook-secret' npm start
+export DASHBOARD_PASSWORD='choose-a-local-password'
+export RAZORPAY_WEBHOOK_SECRET='your-test-webhook-secret'
+npm start
 ```
 
-Open <http://localhost:3000>. Configure the Razorpay Test Mode webhook URL as `https://<your-tunnel>/webhooks/razorpay` and forward the tunnel to port 3000.
+Open <http://localhost:3000>. Dashboard HTTP Basic Auth username is `admin`; password is the value of `DASHBOARD_PASSWORD`. The inbound webhook receiver remains accessible without dashboard login. For Razorpay Test Mode, configure `https://<your-tunnel>/webhooks/razorpay` and forward the tunnel to port 3000.
 
-The webhook secret is separate from the Razorpay API key secret. Test and Live webhook configurations have different secrets. To accept multiple secrets during rotation:
-
-```bash
-RAZORPAY_WEBHOOK_SECRETS='current-secret,previous-secret' npm start
-```
+The webhook secret is separate from the Razorpay API key secret. Test and Live webhook configurations have separate secrets. During secret rotation, configure comma-separated values with `RAZORPAY_WEBHOOK_SECRETS='current-secret,previous-secret'`.
 
 ## Docker Compose
 
 ```bash
-RAZORPAY_WEBHOOK_SECRET='your-test-webhook-secret' docker compose up --build
+export DASHBOARD_PASSWORD='choose-a-local-password'
+export RAZORPAY_WEBHOOK_SECRET='your-test-webhook-secret'
+docker compose up --build
 ```
 
-SQLite data persists in the `webhook_data` volume. Replay to non-local destinations is disabled unless `REPLAY_ALLOW_REMOTE=true` is explicitly configured.
+## Demo flow
 
-## Troubleshooting guide
-
-| Symptom | Possible cause | What to check |
-|---|---|---|
-| Signature mismatch | Body was parsed or changed before hashing; incorrect webhook secret | Verify the raw request bytes first. Confirm the secret belongs to this webhook and Test/Live mode. |
-| Same event appears more than once | Retried delivery | Compare `x-razorpay-event-id`; make the merchant's processing idempotent. |
-| Captured event appears before authorized | Delayed/out-of-order delivery, or the earlier event is not in this inbox | Compare payment IDs and timestamps; do not assume events always arrive in order. |
-| Amount looks too large | Amount is expressed in the currency's smallest unit | For INR, 5000 paise is ₹50.00. Use the event currency when formatting. |
-| Replay signature fails after secret rotation | Destination checks only the current secret | Replay preserves the original body and signature; check with the appropriate historical secret. |
-
-## Demo walkthrough
-
-1. Start the server and send a Test Mode webhook to `/webhooks/razorpay` through a tunnel.
-2. Select the event to inspect its payload, headers, signature result, and diagnosis.
-3. Set the simulator to **Fail · 500 response**, then replay to the local demo receiver.
-4. Observe the response and switch back to **Normal · 200 OK** to replay again.
-5. Send a `payment.captured` event before an authorization event to inspect the ordering warning.
+1. Start the server and send a Razorpay Test Mode event through a tunnel.
+2. Select the event to inspect verification status, redacted payload, headers, and diagnosis.
+3. Set the simulator to return 500 and replay to the local demo endpoint; switch to normal and replay again.
+4. Review event ID and payment ordering diagnosis.
 
 ## API
 
-- `POST /webhooks/razorpay` — store and verify a webhook, then acknowledge with HTTP 200.
-- `GET /api/events` — list events; supports `type`, `verified`, and `duplicate` filters.
-- `GET /api/events/:id` — retrieve event detail, payload, headers, and diagnosis.
-- `POST /api/events/:id/replay` with `{"url":"http://localhost:3000/demo/receiver"}` — replay stored bytes and signature.
+- `POST /webhooks/razorpay` — receive and persist a webhook, then return 200.
+- `GET /api/events` — list/filter events by type, signature result, or duplicate status.
+- `GET /api/events/:id` — inspect PII-redacted details and diagnosis; raw body and signature are not returned.
+- `POST /api/events/:id/replay` — replay stored bytes and original signature to an allowed HTTP(S) target.
 - `GET|POST /api/simulator` — inspect or set `normal`, `fail`, or `slow` demo behavior.
-- `GET /api/health` — check server health and whether a webhook secret is configured.
+- `GET /api/health` — basic health/configuration status.
 
 ## Tests
 
@@ -85,12 +59,8 @@ SQLite data persists in the `webhook_data` volume. Replay to non-local destinati
 npm test
 ```
 
-The test suite covers valid, tampered, wrong-secret, and parse/serialize-changed signatures; repeated event IDs; and a possible out-of-order payment event.
-
-## Project scope
-
-The payment-order warning is heuristic: it only uses deliveries recorded in this database and does not prove a provider event was lost. Replay sends the stored signature unchanged, so secret rotation may require checking with a historical secret at the destination.
+GitHub Actions runs the test suite on pushes and pull requests.
 
 ## Data handling
 
-Webhook request bodies and headers are stored in the local SQLite database. Use test-mode events and keep the database and any tunnel access limited to people who need it. Never commit API keys, webhook secrets, or customer data.
+The event store retains the original raw payload for signature validation and replay. Email addresses, phone numbers, and sensitive keyed fields are masked in dashboard/API representations; the original SQLite database remains unredacted. Use synthetic/test-mode data and protect the local database.
