@@ -1,6 +1,6 @@
 # WebHook-Dehook
 
-**Inspect, diagnose, and replay Razorpay webhook deliveries.** WebHook-Dehook checks signatures against the original request bytes, stores event history, flags duplicate IDs and possible payment-event ordering gaps, and helps developers reproduce integration issues locally.
+**Inspect, diagnose, and replay Razorpay webhook deliveries.** WebHook-Dehook verifies signatures against the original request bytes, stores event history, flags duplicate IDs and possible payment-event ordering gaps, and helps troubleshoot merchant integrations.
 
 ![Webhook debugging workflow](docs/images/webhook-debug-flow.svg)
 
@@ -9,7 +9,7 @@
 - Receives Razorpay webhooks at `POST /webhooks/razorpay`.
 - Verifies `X-Razorpay-Signature` with HMAC-SHA256 using the exact raw body, before JSON parsing.
 - Stores payload bytes, request headers, event ID/type, verification result, and receipt time in SQLite.
-- Marks repeated `x-razorpay-event-id` values and provides a best-effort warning when a captured event has no earlier authorization delivery in the recorded history.
+- Marks repeated `x-razorpay-event-id` values and provides a best-effort warning when a captured event has no earlier authorization delivery in recorded history.
 - Displays event details and filters by event type, signature result, and duplicate status.
 - Replays the original body and signature to a localhost destination by default.
 - Simulates normal, failed, and delayed local receiver responses.
@@ -60,7 +60,7 @@ SQLite data persists in the `webhook_data` volume. Replay to non-local destinati
 | Same event appears more than once | Retried delivery | Compare `x-razorpay-event-id`; make the merchant's processing idempotent. |
 | Captured event appears before authorized | Delayed/out-of-order delivery, or the earlier event is not in this inbox | Compare payment IDs and timestamps; do not assume events always arrive in order. |
 | Amount looks too large | Amount is expressed in the currency's smallest unit | For INR, 5000 paise is ₹50.00. Use the event currency when formatting. |
-| Replay signature fails after secret rotation | Destination checks only the current secret | The replay preserves the original body and signature; check with the appropriate historical secret. |
+| Replay signature fails after secret rotation | Destination checks only the current secret | Replay preserves the original body and signature; check with the appropriate historical secret. |
 
 ## Demo walkthrough
 
@@ -89,4 +89,8 @@ The test suite covers valid, tampered, wrong-secret, and parse/serialize-changed
 
 ## Project scope
 
-This repository is focused on the webhook inspection and replay workflow. The payment-order warning is heuristic: it only uses deliveries recorded in this database and does not prove that a provider event was lost. Replay preserves the original signature; it does not create a newly signed event.
+The payment-order warning is heuristic: it only uses deliveries recorded in this database and does not prove a provider event was lost. Replay sends the stored signature unchanged, so secret rotation may require checking with a historical secret at the destination.
+
+## Data handling
+
+Webhook request bodies and headers are stored in the local SQLite database. Use test-mode events and keep the database and any tunnel access limited to people who need it. Never commit API keys, webhook secrets, or customer data.
