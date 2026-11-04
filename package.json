@@ -2,7 +2,7 @@
   "name": "webhook-dehook",
   "version": "1.0.0",
   "private": true,
-  "description": "Razorpay webhook debugger: verifies signatures on raw bodies, flags duplicates and out-of-order events, and replays payloads.",
+  "description": "Razorpay webhook debugger: verifies raw-body signatures, flags duplicate and out-of-order events, and replays payloads.",
   "main": "server.js",
   "scripts": { "start": "node server.js", "test": "node --test" },
   "engines": { "node": ">=20" },
