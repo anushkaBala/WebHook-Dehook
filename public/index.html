@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebHook-Dehook · Razorpay debugger</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="WebHook-Dehook home"><span class="brand-mark">↯</span><span>WebHook<span class="brand-light">-Dehook</span></span></a>
+    <div class="top-actions"><span class="live-dot"></span><span id="health">Connecting…</span><a class="docs-link" href="https://razorpay.com/docs/webhooks/validate-test/" target="_blank" rel="noreferrer">Razorpay docs ↗</a></div>
+  </header>
+  <main>
+    <section class="intro"><div><p class="eyebrow">RAZORPAY INTEGRATION TOOLKIT</p><h1>Webhook event inspector</h1><p class="subhead">Capture, diagnose, and replay webhook deliveries. Signature checks use the original raw request bytes.</p></div><div class="endpoint-card"><span class="label">YOUR WEBHOOK ENDPOINT</span><code id="endpoint"></code><button class="copy-button" id="copy-endpoint">Copy</button></div></section>
+    <section class="simulator panel"><div class="sim-copy"><span class="sim-icon">⚙</span><div><h2>Failure simulator</h2><p>Choose how the local replay target responds.</p></div></div><div class="sim-controls"><select id="sim-mode" aria-label="Simulator mode"><option value="normal">Normal · 200 OK</option><option value="fail">Fail · 500 response</option><option value="slow">Slow · delayed response</option></select><button class="button secondary" id="save-sim">Apply</button><span id="sim-status" class="muted"></span></div></section>
+    <section class="workspace">
+      <div class="panel event-panel"><div class="section-heading"><div><p class="eyebrow">INCOMING DELIVERIES</p><h2>Events <span class="count" id="count">0</span></h2></div><button class="button secondary" id="refresh">↻ Refresh</button></div>
+        <div class="filters"><label>Event type<input id="filter-type" placeholder="e.g. payment.captured"></label><label>Verification<select id="filter-verified"><option value="">All</option><option value="true">Verified</option><option value="false">Failed</option></select></label><label>Delivery<select id="filter-duplicate"><option value="">All</option><option value="true">Duplicates</option><option value="false">Unique</option></select></label></div>
+        <div class="event-list" id="event-list"><div class="empty-state"><span>↯</span><strong>Waiting for webhook events</strong><p>Send a Razorpay test event to the endpoint above to get started.</p></div></div>
+      </div>
+      <aside class="panel detail-panel" id="detail-panel"><div class="empty-detail"><div class="empty-graphic">{ }</div><h2>Select an event</h2><p>Inspect its payload, headers, signature status, and troubleshooting notes.</p></div></aside>
+    </section>
+    <footer><span>Built for debugging Razorpay merchant integrations.</span><span>Replay preserves the original body and signature. Rotated secrets can invalidate older signatures.</span></footer>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>

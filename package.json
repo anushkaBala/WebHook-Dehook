@@ -1,0 +1,21 @@
+{
+  "name": "webhook-dehook",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A Razorpay-focused webhook debugger, diagnosis dashboard, and replay tool.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.1"
+  }
+}

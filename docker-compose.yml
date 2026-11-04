@@ -1,0 +1,16 @@
+services:
+  webhook-dehook:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATA_DIR: /app/data
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-local-development-secret}
+      # Set to true only when you trust users who can request replays.
+      REPLAY_ALLOW_REMOTE: ${REPLAY_ALLOW_REMOTE:-false}
+    volumes:
+      - webhook_data:/app/data
+    restart: unless-stopped
+volumes:
+  webhook_data:
